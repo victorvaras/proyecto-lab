@@ -30,11 +30,18 @@ typedef struct Punto //sensores que deben ser activados
 	
 }Punto;
 
+typedef struct Componentes_Mapa //tomar cant, dps scanf para obtener ptos
+{
+	int cantidad_Sensores; 
+	int cantidad_Puntos;
+	Sensor* Sensores;
+	Punto* Puntos;
+
+}Componentes_Mapa;
 
 Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantidad_Puntos){
 	FILE* puntero_archivo;
 
-	// use appropriate location if you are using MacOS or Linux
 	puntero_archivo = fopen(nombre_Archivo,"r");
 
 	if(puntero_archivo == NULL)
@@ -49,7 +56,13 @@ Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantida
 	fscanf(puntero_archivo, "%d", cantidad_Sensores);
 	printf("Cantidad de sensores es: %d\n", *cantidad_Sensores);
 
-	/*cantidad puntos a volver a activar
+	/*
+	fgets(str, 60, puntero_archivo);
+	token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
+	obtener cant ptos que activar
+
+	cantidad puntos a volver a activar
 	fscanf(puntero_archivo, "%d", cantidad_Puntos);
 	printf("Cantidad de sensores por activar es: %d\n", *cantidad_Puntos);
 	*/
@@ -76,35 +89,24 @@ Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantida
 		printf( "primer token %s\n", token); //printing each token
 		token = strtok(NULL, " ");
 		printf( "segundo token %s\n", token);
+		/*
 		token = strtok(NULL, " ");
 		printf( "tercer token %s\n", token);
 		token = strtok(NULL, " ");
 		printf( "cuarto token %s\n", token);
-
+		*/
 		arreglo_Sensores[i].temperatura = atoi(token);
-		//printf("La bateria del dron es: %d\n", arreglo_Drones[i].bateria);
+		printf("La temperatura es: %d\n", arreglo_Sensores[i].temperatura);
 
 		//Se lee el humedad
 		fgets(str, 60, puntero_archivo); //guarda cadena caract hasta un salto de lienea
 		// Extract the first token
-		token = strtok(str, " ");
+		token = strtok(str, ".");
 		token = strtok(NULL, " ");
 		token = strtok(NULL, " ");
 
 		arreglo_Sensores[i].humedad = atoi(token);
-		//printf("El estanque del dron es: %d\n", arreglo_Drones[i].estanque);
-
-
-		//Se lee la rapidez
-		fgets(str, 60, puntero_archivo);
-		// Extract the first token
-		token = strtok(str, " ");
-		token = strtok(NULL, " ");
-		token = strtok(NULL, " ");
-
-		//arreglo_Sensores[i].rapidez = atoi(token);
-		//printf("La rapidez del dron es: %d\n", arreglo_Drones[i].rapidez);
-
+		printf("La humedad es: %d\n", arreglo_Sensores[i].humedad);
 	}
 
 	fclose(puntero_archivo);
@@ -127,16 +129,6 @@ void imprimir_Sensores(Sensor* arreglo_Sensores, int cantidad_Sensores, int cant
 	}
 */	return;
 }
-
-typedef struct Componentes_Mapa //tomar cant, dps scanf para obtener ptos
-{
-	int cantidad_Sensores; 
-	int cantidad_Puntos;
-	Sensor* Sensores;
-	Punto* Puntos;
-
-}Componentes_Mapa;
-
 
 int main()
 {
