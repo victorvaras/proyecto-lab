@@ -320,7 +320,6 @@ Conponentes_Mapa ubicacion_objetos(Conponentes_Mapa componentes){
 return componentes;
 }
 
-
 void imprimir_estadisticas(Conponentes_Mapa componente,int velocidad){
 
 	int porcentaje;
@@ -333,9 +332,6 @@ void imprimir_estadisticas(Conponentes_Mapa componente,int velocidad){
 	printf("Rapidez actual: %d", velocidad);
 
 }
-
-
-
 
 
 //Comprobacion de alguna accion a realizar(regar, sensor, recargar)
@@ -351,11 +347,11 @@ Conponentes_Mapa comprobar_accion(Conponentes_Mapa componente){
 			componente.mapa[componente.dron_y][componente.dron_x]=' ';
 		}
 		else{
-			printf("Se requiere recargar estanque, agua insuficiente.\n");
-			
+			printf("Se requiere recargar estanque, agua insuficiente.\n");			
 		}
 	}
 	
+
 	else if(componente.mapa[componente.dron_y][componente.dron_x]=='A'){
 	
 		componente.dron.estanque=componente.dron.estanque_max;
@@ -363,6 +359,7 @@ Conponentes_Mapa comprobar_accion(Conponentes_Mapa componente){
 	
 	}
 	
+
 	else if(componente.mapa[componente.dron_y][componente.dron_x]=='W'){
 	
 		componente.dron.bateria=componente.dron.bateria_max;
@@ -370,9 +367,10 @@ Conponentes_Mapa comprobar_accion(Conponentes_Mapa componente){
 	
 	}
 	
+	if (componente.dron.bateria<30){
 
-
-
+		printf("Bateria baja, debe recargarla en los puntos W\n");
+	}
 return componente;
 }
 
@@ -511,22 +509,98 @@ void mover_dron(Conponentes_Mapa componente){
 	}
 }
 
+void menu(Conponentes_Mapa* totalidad_Mapas,Dron* arreglo_Drones){
 
+	int salir=0;
+	char eleccion[10];
+
+	printf("Bienvenido a SUCCESSFUL IRRIGATION \n\n");
+
+	while(salir==0){
+		
+		int i;
+		char* nombres[CANTIDAD_MAPAS];
+		nombres[0]="Mapa_00.in";
+		nombres[1]="Mapa_01.in";
+
+		//Struct en la cual se guardara mapa a utilizar por el usuario
+		Conponentes_Mapa mapa_Util;
+		Dron dron_Util;
+
+		printf("~~~~~ Menu de opciones ~~~~\n");
+		printf("Indique valor numerico correspondiente a su preferencia \n");
+		printf("1.- Drones disponibles.\n");
+		printf("2.- Mapas disponibles.\n");
+		printf("3.- Manejo dron de manera manual.\n");
+		printf("4.- Manejo dron de manera automatica.\n");
+		printf("5.- Salir\n");
+
+		fflush(stdin);
+		scanf("%s",eleccion);
+
+		if(0==strcmp(eleccion,"1")){
+
+			imprimir_Drones(arreglo_Drones);
+
+		}
+
+		else if(0==strcmp(eleccion,"2")){
+ 
+			for	(i=0;i<CANTIDAD_MAPAS;i++){
+
+				printf("\n~~~~~~~~~~~ %s ~~~~~~~~~~~ \n",nombres[i]);
+				imprimir_mapa(totalidad_Mapas[i]);
+				printf("\n\n");
+			}
+		}
+
+		else if(0==strcmp(eleccion,"3")){
+
+			mapa_Util=eleccion_mapa(totalidad_Mapas,nombres);		
+			mapa_Util=ubicacion_objetos(mapa_Util);
+			
+			dron_Util=eleccion_Dron(mapa_Util,arreglo_Drones);
+			dron_Util.numero_Drones=1;
+			mapa_Util.dron=dron_Util;
+
+			mover_dron(mapa_Util);
+
+		}
+
+		else if(0==strcmp(eleccion,"4")){
+
+			
+		}
+
+		else if(0==strcmp(eleccion,"5")){
+			salir++;
+			
+		}
+
+		else{
+
+			printf("Vuelva pronto a SUCCESSFUL IRRIGATION \n\n");
+			
+		}
+	}
+}
+
+	
 
 int main(){
-	
+	char* nombres[CANTIDAD_MAPAS];
+	nombres[0]="Mapa_00.in";
+	nombres[1]="Mapa_01.in";
 	int i;
 	Dron* arreglo_Drones;
 	arreglo_Drones = leer_drones("Drones.in");
-	//imprimir_Drones(arreglo_Drones);
+	
 
 
 	Conponentes_Mapa totalidad_Mapas[CANTIDAD_MAPAS];
 	
 	//Nombre de mapas
-	char* nombres[CANTIDAD_MAPAS];
-	nombres[0]="Mapa_00.in";
-	nombres[1]="Mapa_01.in";
+	
 	
 	for(i=0;i<CANTIDAD_MAPAS;i++){
 	
@@ -537,11 +611,12 @@ int main(){
 
 	
 	//Seleccion de mapa a usar
+	/*
 	Conponentes_Mapa mapa_Util;	
 	mapa_Util=eleccion_mapa(totalidad_Mapas,nombres);		
 	mapa_Util=ubicacion_objetos(mapa_Util);
 	imprimir_mapa(mapa_Util);
-
+	
 	Dron dron_Util;
 	dron_Util=eleccion_Dron(mapa_Util,arreglo_Drones);
 	dron_Util.numero_Drones=1;
@@ -552,15 +627,11 @@ int main(){
 	//Movimiento del dron
 	mover_dron(mapa_Util);
 	
+	*/
+	menu(totalidad_Mapas,arreglo_Drones);
 
 	free(arreglo_Drones);
 
 
 	return 0;
 }
-
-/*
-
-
-
-*/
