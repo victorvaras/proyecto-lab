@@ -7,7 +7,6 @@
 
 typedef struct Sensor
 {
-	char tipo[LARGO_TIPO];
 	//posicion
 	int x; //fila
 	int y;//columna
@@ -19,7 +18,6 @@ typedef struct Sensor
 
 typedef struct Punto //sensores que deben ser activados
 {
-	char tipo[LARGO_TIPO];
 	//posicion
 	int x; //fila
 	int y;//columna
@@ -71,7 +69,7 @@ Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantida
 
 	int i;
 	char * token;
-	for (i = 0; i < 9; ++i)
+	for (i = 0; i < cantidad_Sensores+cantidad_Puntos; ++i) //como comenzar desde otro numero de fila
 	{
 	/*  memset(str, '\0', LARGO_ENTRADA);
 		//Se lee el tipo de dron
@@ -81,6 +79,24 @@ Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantida
 		fgets(str, 60, puntero_archivo);
 		*/
 
+		fgets(str, 60, puntero_archivo);
+		printf("string leido: %s", str);
+		token = strtok(int, "."); //revisar
+		printf( "primer token %s\n", token); //printing each token
+		token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
+
+		arreglo_Sensores[i].x = atoi(token);
+
+		fgets(str, 60, puntero_archivo);
+		printf("string leido: %s", str);
+		token = strtok(int, "."); //revisar
+		printf( "primer token %s\n", token); //printing each token
+		token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
+
+		arreglo_Sensores[i].y = atoi(token);
+
 		//Se lee la temperatura
 		fgets(str, 60, puntero_archivo);
 		printf("string leido: %s", str);
@@ -89,12 +105,7 @@ Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantida
 		printf( "primer token %s\n", token); //printing each token
 		token = strtok(NULL, " ");
 		printf( "segundo token %s\n", token);
-		/*
-		token = strtok(NULL, " ");
-		printf( "tercer token %s\n", token);
-		token = strtok(NULL, " ");
-		printf( "cuarto token %s\n", token);
-		*/
+	
 		arreglo_Sensores[i].temperatura = atoi(token);
 		printf("La temperatura es: %d\n", arreglo_Sensores[i].temperatura);
 
@@ -107,8 +118,45 @@ Sensor* leer_Sensores(char* nombre_Archivo, int* cantidad_Sensores, int* cantida
 
 		arreglo_Sensores[i].humedad = atoi(token);
 		printf("La humedad es: %d\n", arreglo_Sensores[i].humedad);
-	}
+	
+		//posicion punto de control a arreglar
+		fgets(str, 60, puntero_archivo);
+		printf("string leido: %s", str);
+		token = strtok(int, "."); //revisar
+		printf( "primer token %s\n", token); //printing each token
+		token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
 
+		arreglo_Puntos[i].x = atoi(token);
+
+		fgets(str, 60, puntero_archivo);
+		printf("string leido: %s", str);
+		// Extract the first token
+		token = strtok(int, "."); //revisar
+		printf( "primer token %s\n", token); //printing each token
+		token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
+
+		arreglo_Puntos[i].y = atoi(token);
+
+		//posicion boton
+		fgets(str, 60, puntero_archivo);
+		printf("string leido: %s", str);
+		token = strtok(int, "."); //revisar
+		printf( "primer token %s\n", token); //printing each token
+		token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
+		arreglo_Puntos[i].i = atoi(token);
+
+		fgets(str, 60, puntero_archivo);
+		printf("string leido: %s", str);
+		token = strtok(int, "."); //revisar
+		printf( "primer token %s\n", token); //printing each token
+		token = strtok(NULL, " ");
+		printf( "segundo token %s\n", token);
+
+		arreglo_Puntos[i].j = atoi(token);
+	}
 	fclose(puntero_archivo);
 
 	return arreglo_Sensores;
@@ -118,16 +166,14 @@ void imprimir_Sensores(Sensor* arreglo_Sensores, int cantidad_Sensores, int cant
 {
 	printf("La cantidad de sensores es: %d\n\n", cantidad_Sensores);
 	printf("Y la cantidad de puntos a volver a activar es: %d\n\n", cantidad_Puntos);
-/*
-	for (int i = 0; i < cantidad_Drones; ++i)
+
+	for (int i = 0; i < cantidad_Sensores; ++i)
 	{
-		printf("Tipo dron: %s\n", arreglo_Drones[i].tipo);
-		printf("La bateria del dron es: %d\n", arreglo_Drones[i].bateria);
-		printf("El estanque del dron es: %d\n", arreglo_Drones[i].estanque);
-		printf("La rapidez del dron es: %d\n", arreglo_Drones[i].rapidez);
+		printf("Temperatura: %d\n", arreglo_Drones[i].temperatura);
+		printf("Humedad: %d\n", arreglo_Drones[i].humedad);
 		printf("\n\n\n");
 	}
-*/	return;
+	return;
 }
 
 int main()
