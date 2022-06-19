@@ -23,7 +23,31 @@ typedef struct UBICACION_PAJAROS{
 
 	int pajaro_x;
 	int pajaro_y;
+	
 }Ubicacion_Pajaros;
+
+typedef struct Sensor{
+
+	int cantidad_Sensores; 	
+	int sensor_x; 
+	int sensor_y;
+	int temperatura;
+	int humedad; 
+
+}Sensor;
+
+typedef struct Punto //sensores que deben ser activados
+{
+	int cantidad_Puntos;
+	int punto_x;
+	int punto_y;
+	int boton_x;
+	int boton_y;
+	int cantidad_pasos; 
+	
+}Punto;
+
+
 
 typedef struct COMPONENTES_MAPA{
 	
@@ -38,7 +62,8 @@ typedef struct COMPONENTES_MAPA{
 	int cantidad_pajaros;
 	Ubicacion_Pajaros* pajaros;
 	Dron dron;
-	
+	Sensor* sensor;	
+	Punto* punto;
 
 }Conponentes_Mapa;
 
@@ -104,7 +129,7 @@ Dron* leer_drones(char* nombre_Archivo)
 	}
 	fclose(puntero_archivo);
 	
-return arreglo_Drones;
+	return arreglo_Drones;
 }
 
 void imprimir_Drones(Dron* arreglo_Drones)
@@ -158,8 +183,126 @@ Dron eleccion_Dron(Conponentes_Mapa total_Mapas,Dron* arreglo_Drones){
 			salir++;
 		}
 	}
+	
 return dron_util;
 }
+
+Sensor* leer_Sensores(Sensor* sensores,char* nombre_Archivo){
+
+	FILE* puntero_archivo;
+	puntero_archivo = fopen(nombre_Archivo,"r");
+
+	if(puntero_archivo == NULL)
+	{
+	  printf("Error! No existe el archivo");   
+	  exit(1);             
+	}
+
+	char str[LARGO_ENTRADA];
+	int cantidad_Sensores,cantidad_Puntos;	
+	
+	fscanf(puntero_archivo, "%d",&cantidad_Sensores);	
+	sensores = (Sensor*)malloc(sizeof(Sensor)*(cantidad_Sensores));
+
+	fscanf(puntero_archivo, "%d",&cantidad_Puntos);		
+
+	//Lectura salto de linea
+	fgets(str, 60, puntero_archivo);
+
+	int i;
+	char * token;	
+	
+	for(i=0;i<cantidad_Sensores;i++){
+		
+		//Se almacena cantidad de puntos en las struct
+		sensores[i].cantidad_Sensores=cantidad_Sensores;		
+		
+		//Lectura sensores
+		fgets(str, 60, puntero_archivo);
+		
+		//Cordenada y
+		token = strtok(str, ".");
+		sensores[i].sensor_y=atoi(token);
+		
+		//Cordenada X
+		token = strtok(NULL, " ");
+		sensores[i].sensor_x=atoi(token);
+		
+		//Temperatura
+		token = strtok(NULL, " ");
+		sensores[i].temperatura=atoi(token);
+		
+		//Humedad
+		token = strtok(NULL, " ");
+		sensores[i].humedad=atoi(token);	
+		
+	}
+	
+	fclose(puntero_archivo);	
+	return sensores;
+}
+
+
+Punto* leer_Puntos(Punto* puntos,char* nombre_Archivo){
+
+	FILE* puntero_archivo;
+	puntero_archivo = fopen(nombre_Archivo,"r");
+
+	if(puntero_archivo == NULL)
+	{
+	  printf("Error! No existe el archivo");   
+	  exit(1);             
+	}
+
+	char str[LARGO_ENTRADA];
+	int cantidad_Sensores,cantidad_Puntos;	
+	
+	fscanf(puntero_archivo, "%d",&cantidad_Sensores);	
+	
+	fscanf(puntero_archivo, "%d",&cantidad_Puntos);	
+	puntos = (Punto*)malloc(sizeof(Punto)*(cantidad_Puntos));	
+
+	//Lectura salto de linea
+	fgets(str, 60, puntero_archivo);
+
+	int i;
+	char * token;
+	
+	//Se lee los sensores, para llegar hasta los puntos.
+	for(i=0;i<cantidad_Sensores;i++){		
+		fgets(str, 60, puntero_archivo);		
+	}
+
+	for(i=0;i<cantidad_Puntos;i++){
+		
+		puntos[i].cantidad_Puntos=cantidad_Puntos;
+		
+		fgets(str, 60, puntero_archivo);
+		
+		//Cordenada Y punto
+		token = strtok(str, ".");
+		puntos[i].punto_y=atoi(token);		
+		//Cordenada X punto
+		token = strtok(NULL, " ");
+		puntos[i].punto_x=atoi(token);
+		
+		token = strtok(NULL, ".");
+		puntos[i].boton_y=atoi(token);		
+		//Cordenada X punto
+		token = strtok(NULL, " ");
+		puntos[i].boton_x=atoi(token);
+		//Cantidad pasos
+		token = strtok(NULL, " ");
+		puntos[i].cantidad_pasos=atoi(token);
+
+	}
+	
+	fclose(puntero_archivo);
+	return puntos;
+}
+
+
+
 
 Conponentes_Mapa leer_Mapa(char* nombre_mapa){
 	
@@ -205,7 +348,8 @@ void imprimir_mapa(Conponentes_Mapa componente){
 	int con=0;
 	
 	for(a=0;a<20;a++){
-   		for(b=0;b<37;b++){
+   		for(b=0;b<37;b++){		
+   				
 				for(i=0;i<componente.cantidad_pajaros;i++){
 
 					if(componente.pajaros[con].pajaro_x==b && componente.pajaros[con].pajaro_y==a){
@@ -588,50 +732,70 @@ void menu(Conponentes_Mapa* totalidad_Mapas,Dron* arreglo_Drones){
 	
 
 int main(){
-	char* nombres[CANTIDAD_MAPAS];
-	nombres[0]="Mapa_00.in";
-	nombres[1]="Mapa_01.in";
+
 	int i;
+	
+	//Lectrura drones
 	Dron* arreglo_Drones;
 	arreglo_Drones = leer_drones("Drones.in");
 	
-
-
-	Conponentes_Mapa totalidad_Mapas[CANTIDAD_MAPAS];
+	//Lectura Mapas
+	char* nombres[CANTIDAD_MAPAS];
+	nombres[0]="Mapa_00.in";
+	nombres[1]="Mapa_01.in";
 	
-	//Nombre de mapas
+	char* nombre_puntos[1];
+	nombre_puntos[0]="Puntos.in";
+	nombre_puntos[1]="Puntos.in";
 	
+	Conponentes_Mapa totalidad_Mapas[CANTIDAD_MAPAS];	
+	Sensor* sensores;
+	Punto* puntos;
 	
 	for(i=0;i<CANTIDAD_MAPAS;i++){
 	
 		Conponentes_Mapa nuevo_mapa=leer_Mapa(nombres[i]);
 		
+		nuevo_mapa.sensor=leer_Sensores(sensores,nombre_puntos[i]);
+		nuevo_mapa.punto =leer_Puntos(puntos,nombre_puntos[i]);
 		totalidad_Mapas[i]=nuevo_mapa;	
 	}
 
+	//Lectura sensores y puntos.
 	
-	//Seleccion de mapa a usar
-	/*
-	Conponentes_Mapa mapa_Util;	
-	mapa_Util=eleccion_mapa(totalidad_Mapas,nombres);		
-	mapa_Util=ubicacion_objetos(mapa_Util);
-	imprimir_mapa(mapa_Util);
+	Conponentes_Mapa m=totalidad_Mapas[1];
 	
-	Dron dron_Util;
-	dron_Util=eleccion_Dron(mapa_Util,arreglo_Drones);
-	dron_Util.numero_Drones=1;
-	mapa_Util.dron=dron_Util;
-	//imprimir_Drones(dron_Util);
+	for(i=0;i<m.sensor->cantidad_Sensores;i++){
+		
+		printf(" Y  %d\n",m.sensor[i].sensor_y);
+		printf(" X  %d\n",m.sensor[i].sensor_x);
+		printf(" Temperatura  %d\n",m.sensor[i].temperatura);
+		printf(" Humedad  %d\n",m.sensor[i].humedad);
 	
+	}
+	
+	
+	for(i=0;i<m.punto->cantidad_Puntos;i++){
+		
+		printf(" pY  %d\n",m.punto[i].punto_y);
+		printf(" pX  %d\n",m.punto[i].punto_x);
+		printf(" bY  %d\n",m.punto[i].boton_y);
+		printf(" bX  %d\n",m.punto[i].boton_x);
+		printf(" pasos  %d\n",m.punto[i].cantidad_pasos);
+		
+	
+	}
+	
+	
+	
+	
+	
+	//menu(totalidad_Mapas,arreglo_Drones);
 
-	//Movimiento del dron
-	mover_dron(mapa_Util);
 	
-	*/
-	menu(totalidad_Mapas,arreglo_Drones);
-
+	
 	free(arreglo_Drones);
-
+	
 
 	return 0;
 }
