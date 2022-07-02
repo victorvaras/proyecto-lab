@@ -1,0 +1,21 @@
+5
+fastDrones
+bateria = 100
+estanque = 50
+rapidez = 2
+grandDrones
+bateria = 60
+estanque = 150
+rapidez = 1
+goldDrones
+bateria = 130
+estanque = 170
+rapidez = 2
+ninjaDrones
+bateria = 100
+estanque = 100
+rapidez = 2
+capsDrones
+bateria = 100
+estanque = 150
+rapidez = 1
