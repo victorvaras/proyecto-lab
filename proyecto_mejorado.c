@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
 
 #define LARGO_TIPO 20
 #define LARGO_ENTRADA 60
@@ -13,7 +13,6 @@
 
 typedef struct Dron
 {
-	int numero_Drones;
 	char tipo[LARGO_TIPO];
 	int estanque;
 	int estanque_max;
@@ -25,6 +24,7 @@ typedef struct Dron
 typedef struct UBICACION_PAJAROS{
 	int pajaro_x;
 	int pajaro_y;
+
 }Ubicacion_Pajaros;
 
 typedef struct SENSOR{
@@ -53,7 +53,6 @@ typedef struct EXTRAS{
 	
 }Extras;	
 
-
 typedef struct COMPONENTES_MAPA{
 	
 	int mapa[FILAS_MATRIZ][COLUMNAS_MATRIZ];
@@ -78,6 +77,443 @@ typedef struct COMPONENTES_MAPA{
 }Conponentes_Mapa;
 
 
+typedef struct BEE_PAJARO{
+
+	int mapa[FILAS_MATRIZ][COLUMNAS_MATRIZ];
+	int dron_x;
+	int dron_y;
+	int pajaro_x;
+	int pajaro_y;
+	char* transicion ;
+	int estado_Actual;
+	int estado_Anterior;
+}bee_Pajaro;
+
+int correlativo;
+
+
+
+bee_Pajaro crear_Estado(int anterior, char* t){
+
+	bee_Pajaro nuevo_Estado;
+
+	nuevo_Estado.estado_Actual = correlativo;
+	nuevo_Estado.estado_Anterior = anterior;	
+	nuevo_Estado.transicion=t;
+	correlativo = correlativo + 1;
+
+	return nuevo_Estado;
+}
+
+bee_Pajaro * agregar_Estado(bee_Pajaro * lista, int * elementos, bee_Pajaro estado){
+
+	bee_Pajaro * nuevaLista = (bee_Pajaro *)malloc(sizeof(bee_Pajaro)*(*elementos+1));
+
+	int i;
+	for (i = 0; i < *elementos; ++i){
+		nuevaLista[i] = lista[i];
+	}
+	nuevaLista[*elementos] = estado;
+	*elementos = *elementos+1;
+	free(lista);
+	return nuevaLista;
+}
+
+bee_Pajaro* sacar_Estado(bee_Pajaro * lista, int * elementos){
+
+	bee_Pajaro* nuevaLista = (bee_Pajaro*)malloc(sizeof(bee_Pajaro)*(*elementos-1));
+	for (int i = 1; i < *elementos; ++i){
+		nuevaLista[i-1]=lista[i];
+	}
+	*elementos = *elementos-1;
+	free(lista);
+	return nuevaLista;
+}
+
+int estado_Final(bee_Pajaro estado){
+
+	if(estado.dron_x==estado.pajaro_x && estado.dron_y==estado.pajaro_y){
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
+
+void  mostrar_Tablero(bee_Pajaro estado);
+bee_Pajaro copiar_Tableros(bee_Pajaro nuevoEstado,bee_Pajaro estado){
+
+	int i,j;
+
+	for (int i = 0; i < FILAS_MATRIZ; ++i){
+		for (int j = 0; j < COLUMNAS_MATRIZ; ++j){
+
+			nuevoEstado.mapa[i][j]=estado.mapa[i][j];
+		}
+	}
+	//copio las coordenadas del caballo de "estado" 
+	
+	nuevoEstado.pajaro_x=estado.pajaro_x;
+	nuevoEstado.pajaro_y=estado.pajaro_y;
+	nuevoEstado.dron_x=estado.dron_x;
+	nuevoEstado.dron_y=estado.dron_y;
+	//retorno nuevoEstado ya que copie el tablero y la posicion del caballo
+
+	return nuevoEstado;
+}
+
+int comparar_Tableros(bee_Pajaro a, bee_Pajaro b){//retorno 1 (si son distintas) y 0 (si son iguales)
+	int i,j;
+
+	for ( i = 0; i < FILAS_MATRIZ; ++i){
+		for ( j = 0; j < COLUMNAS_MATRIZ; ++j){
+
+			if(a.mapa[i][j]!=b.mapa[i][j]){
+				return 0;//si encuentra dos valores que sean distintos entonces los tableros no son los mismos
+			}
+		}
+	}
+	return 1;//si termina el for y no encuentro un valor distinto dentro de los tableros , entonces retorno 1, son iguales los tableros
+}
+
+int revisar_Estado(bee_Pajaro* lista,int elementos,bee_Pajaro estado){
+	
+	int i;
+	for (i=0;i<elementos;i++){
+		if((comparar_Tableros(lista[i],estado))==1){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void  mostrar_Tablero(bee_Pajaro estado){
+	int i,j;//creo estas variables para copiar los tableros mediante dos ciclos fors
+	printf("\n");
+	for (int i = 0; i < FILAS_MATRIZ; ++i){
+		for (int j = 0; j < COLUMNAS_MATRIZ; ++j){
+			
+			printf("%c", estado.mapa[i][j]);			
+		}
+		printf("\n");
+	}
+}
+
+bee_Pajaro mostrarSolucion(bee_Pajaro* lista, int ultimo){
+
+	//printf("Los movimientos a realizar son los siguientes (desde el ultimo al primero):%d \n");
+	int penultimo;
+	while(lista[ultimo].estado_Actual != 0){
+		//printf("%d,%d\n", lista[ultimo].dron_x,lista[ultimo].dron_y);
+		//printf("Transicion %s\n",lista[ultimo].transicion);
+		//mostrar_Tablero(lista[ultimo]);
+		
+		penultimo=ultimo;
+		ultimo = lista[ultimo].estado_Anterior;
+
+		lista[ultimo].mapa[lista[ultimo].pajaro_y][lista[ultimo].pajaro_x]='6';
+	}
+	//lista[ultimo].mapa[lista[ultimo].pajaro_y][lista[ultimo].pajaro_x]='8';
+	//mostrar_Tablero(lista[penultimo]);
+
+	return lista[penultimo];
+}
+
+bee_Pajaro creacion_Mapa_Estado(bee_Pajaro pajaro_Inicial,int alfa){
+
+	int a,b;
+
+	for(a=(pajaro_Inicial.pajaro_y-alfa);a<=pajaro_Inicial.pajaro_y+alfa;a++){
+		for(b=(pajaro_Inicial.pajaro_x-alfa);b<=(pajaro_Inicial.pajaro_x+alfa);b++){
+
+			pajaro_Inicial.mapa[a][b]='1';
+		}
+	}
+	
+	return pajaro_Inicial;
+}
+
+int comprobar_Movimiento_1(bee_Pajaro estado){
+
+	if ((estado.pajaro_y-1)>=0  && (estado.mapa[estado.pajaro_y-1][estado.pajaro_x]=='1' && estado.pajaro_y>estado.dron_y)){
+		
+		return 1;
+	}
+	else {
+		return 0;
+	}
+
+}
+
+bee_Pajaro movimiento_1(bee_Pajaro estado){
+
+	bee_Pajaro nuevo_Estado;
+	nuevo_Estado= crear_Estado(estado.estado_Actual,"arriba");
+
+	nuevo_Estado=copiar_Tableros(nuevo_Estado,estado);
+
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y][nuevo_Estado.pajaro_x]='0';
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y-1][nuevo_Estado.pajaro_x]='2';
+
+	nuevo_Estado.pajaro_x=nuevo_Estado.pajaro_x;
+	nuevo_Estado.pajaro_y=nuevo_Estado.pajaro_y-1;
+	return nuevo_Estado;
+
+}
+
+int comprobar_Movimiento_2(bee_Pajaro estado){
+
+	if ((estado.pajaro_x+1)<(COLUMNAS_MATRIZ)&& (estado.mapa[estado.pajaro_y][estado.pajaro_x+1]=='1' && estado.pajaro_x<estado.dron_x)){
+		return 1;
+	}
+	else {
+		return 0;
+	}
+
+}
+
+bee_Pajaro movimiento_2(bee_Pajaro estado){
+
+	bee_Pajaro nuevo_Estado;
+
+	nuevo_Estado= crear_Estado(estado.estado_Actual,"derecha");
+	nuevo_Estado=copiar_Tableros(nuevo_Estado,estado);
+
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y][nuevo_Estado.pajaro_x]='0';
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y][nuevo_Estado.pajaro_x+1]='2';
+
+	nuevo_Estado.pajaro_x=nuevo_Estado.pajaro_x+1;
+	nuevo_Estado.pajaro_y=nuevo_Estado.pajaro_y;
+	
+	return nuevo_Estado;
+}
+
+int comprobar_Movimiento_3(bee_Pajaro estado){
+	
+	if ((estado.pajaro_y+1)<(FILAS_MATRIZ)&& (estado.mapa[estado.pajaro_y+1][estado.pajaro_x]=='1' && estado.pajaro_y<estado.dron_y)){
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+bee_Pajaro movimiento_3(bee_Pajaro estado){
+
+	bee_Pajaro nuevo_Estado;
+	nuevo_Estado= crear_Estado(estado.estado_Actual,"abajo");
+
+	nuevo_Estado=copiar_Tableros(nuevo_Estado,estado);
+
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y][nuevo_Estado.pajaro_x]='0';
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y+1][nuevo_Estado.pajaro_x]='2';
+
+	nuevo_Estado.pajaro_x=nuevo_Estado.pajaro_x;
+	nuevo_Estado.pajaro_y=nuevo_Estado.pajaro_y+1;
+	return nuevo_Estado;
+}
+
+int comprobar_Movimiento_4(bee_Pajaro estado){
+
+	if ((estado.pajaro_x-1)>=0 && (estado.mapa[estado.pajaro_y][estado.pajaro_x-1]=='1' && estado.pajaro_x>estado.dron_x)){
+		return 1;
+	}
+	else {
+		return 0;
+	}
+
+}
+
+bee_Pajaro movimiento_4(bee_Pajaro estado){
+
+	bee_Pajaro nuevo_Estado;
+	nuevo_Estado= crear_Estado(estado.estado_Actual,"izquierda");
+
+	nuevo_Estado=copiar_Tableros(nuevo_Estado,estado);
+
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y][nuevo_Estado.pajaro_x]='0';
+	nuevo_Estado.mapa[nuevo_Estado.pajaro_y][nuevo_Estado.pajaro_x-1]='2';
+
+	nuevo_Estado.pajaro_x=nuevo_Estado.pajaro_x-1;
+	nuevo_Estado.pajaro_y=nuevo_Estado.pajaro_y;
+	return nuevo_Estado;
+}
+
+
+Conponentes_Mapa mover_pajaros(Conponentes_Mapa componentes){
+
+	
+	int i,j,a,b,salir;
+	int can_Abiertos;
+	int can_Cerrados;
+	bee_Pajaro pajaro_act, pajaro_sig;
+	bee_Pajaro* abiertos;
+	bee_Pajaro* cerrados;
+	bee_Pajaro pajaro_Inicial;
+	//printf("Pajaro 3 X %d  Y %d \n\n\n",componentes.pajaros[2].pajaro_x,componentes.pajaros[2].pajaro_y);
+	//printf("can pajaros %d",componentes.cantidad_pajaros);
+	//componentes.cantidad_pajaros=1;
+	for(i=0;i<componentes.cantidad_pajaros;i++){
+		
+		correlativo=0;
+		can_Abiertos = 0;
+		can_Cerrados = 0;
+		salir=0;
+	
+		abiertos=(bee_Pajaro *)malloc(sizeof(bee_Pajaro)*can_Abiertos);
+		cerrados=(bee_Pajaro *)malloc(sizeof(bee_Pajaro)*can_Cerrados);
+
+		pajaro_Inicial = crear_Estado(correlativo,"");
+
+		//se copia el mapa del programa a bee del pajaro
+		for ( a = 0; a < FILAS_MATRIZ; ++a){
+			for ( b = 0; b < COLUMNAS_MATRIZ; ++b){
+
+				pajaro_Inicial.mapa[a][b]=componentes.mapa[a][b];
+			}
+		}
+
+		//mostrar_Tablero(pajaro_Inicial);
+
+		//copia de informacion fundamental
+
+		pajaro_Inicial.dron_x=componentes.dron_x;
+		pajaro_Inicial.dron_y=componentes.dron_y;
+		//pajaro_Inicial.dron_x=24;
+		//pajaro_Inicial.dron_y=1;
+		
+		pajaro_Inicial.pajaro_x=componentes.pajaros[i].pajaro_x;
+		pajaro_Inicial.pajaro_y=componentes.pajaros[i].pajaro_y;
+		//printf("alfa %d     %d\n",componentes.pajaros[i].pajaro_y,pajaro_Inicial.pajaro_y);
+	
+		//pajaro_Inicial.pajaro_x=3;
+		//pajaro_Inicial.pajaro_y=2;
+		
+
+		//Rango de seguimiento del dron
+		int alfa= 4;
+		
+		//pajaro_Inicial= creacion_Mapa_Estado(pajaro_Inicial,alfa);
+		
+		
+		for(a=(componentes.pajaros[i].pajaro_y-alfa);a<=(componentes.pajaros[i].pajaro_y+alfa);a++){
+			for(b=(pajaro_Inicial.pajaro_x-alfa);b<=(pajaro_Inicial.pajaro_x+alfa);b++){
+
+				if(pajaro_Inicial.mapa[a][b]!='#'){
+
+					pajaro_Inicial.mapa[a][b]='1';
+				}				
+			}
+		}
+		
+		pajaro_Inicial.pajaro_x=componentes.pajaros[i].pajaro_x;
+		pajaro_Inicial.pajaro_y=componentes.pajaros[i].pajaro_y;
+		
+		pajaro_Inicial.mapa[pajaro_Inicial.pajaro_y][pajaro_Inicial.pajaro_x]='2';
+
+
+		//mostrar_Tablero(pajaro_Inicial);
+		//printf("pajaro X: %d   Y: %d\n",pajaro_Inicial.pajaro_x,pajaro_Inicial.pajaro_y);
+		//printf("X: %d   Y: %d\n",pajaro_Inicial.dron_x,pajaro_Inicial.dron_y);
+		//mostrar_Tablero(pajaro_Inicial);
+		abiertos = agregar_Estado(abiertos, &can_Abiertos, pajaro_Inicial);
+		
+		time_t ini,fin;
+		
+		while (can_Abiertos>0 && salir==0){
+			
+			pajaro_act=abiertos[0];
+			
+			abiertos=sacar_Estado(abiertos, &can_Abiertos);
+			cerrados= agregar_Estado(cerrados, &can_Cerrados, pajaro_act);
+
+		
+			if(estado_Final(pajaro_act)==1){
+				
+				//mostrar_Tablero(pajaro_act);
+				pajaro_act=mostrarSolucion(cerrados,can_Cerrados-1);					
+				componentes.pajaros[i].pajaro_x=pajaro_act.pajaro_x;
+				componentes.pajaros[i].pajaro_y=pajaro_act.pajaro_y;
+				salir++;				
+			}
+
+			else{
+
+				
+				if(comprobar_Movimiento_1(pajaro_act)==1){
+
+					pajaro_sig= movimiento_1(pajaro_act);
+					//mostrar_Tablero(pajaro_sig);
+					if(revisar_Estado(abiertos,can_Abiertos,pajaro_sig)==0 && revisar_Estado(cerrados,can_Cerrados,pajaro_sig)==0){
+
+						abiertos=agregar_Estado(abiertos,&can_Abiertos,pajaro_sig);
+						//printf("Movimiento 1 Posible  \n");
+					}
+					else{
+						correlativo = correlativo - 1;
+						//printf("Movimiento 1  no posible  \n");
+					}
+				}
+
+				if(comprobar_Movimiento_2(pajaro_act)==1){
+
+					pajaro_sig= movimiento_2(pajaro_act);
+					//mostrar_Tablero(pajaro_sig);
+
+					if(revisar_Estado(abiertos,can_Abiertos,pajaro_sig)==0 && revisar_Estado(cerrados,can_Cerrados,pajaro_sig)==0){
+
+						abiertos=agregar_Estado(abiertos,&can_Abiertos,pajaro_sig);
+						//printf("Movimiento 2 Posible  \n");
+					}
+					else{
+						correlativo = correlativo - 1;
+						//printf("Movimiento 2  no posible  \n");
+					}
+				}
+				
+				if(comprobar_Movimiento_3(pajaro_act)==1){
+
+					pajaro_sig= movimiento_3(pajaro_act);
+					//mostrar_Tablero(pajaro_sig);
+
+					if(revisar_Estado(abiertos,can_Abiertos,pajaro_sig)==0 && revisar_Estado(cerrados,can_Cerrados,pajaro_sig)==0){
+
+						abiertos=agregar_Estado(abiertos,&can_Abiertos,pajaro_sig);
+						//printf("Movimiento 3 Posible  \n");
+					}
+					else{
+						correlativo = correlativo - 1;
+						//printf("Movimiento 3  no posible  \n");
+					}
+				}
+
+				if(comprobar_Movimiento_4(pajaro_act)==1){
+
+					pajaro_sig= movimiento_4(pajaro_act);
+					//mostrar_Tablero(pajaro_sig);
+
+					if(revisar_Estado(abiertos,can_Abiertos,pajaro_sig)==0 && revisar_Estado(cerrados,can_Cerrados,pajaro_sig)==0){
+
+						abiertos=agregar_Estado(abiertos,&can_Abiertos,pajaro_sig);
+						//printf("Movimiento 4 Posible  \n");
+					}
+					else{
+						correlativo = correlativo - 1;
+						//printf("Movimiento 4 no posible  \n");
+					}
+				}
+				
+			}
+		}
+		//printf("\nCantidad abiertos %d  cantidad cerrados %d\n",can_Abiertos,can_Cerrados);
+		//printf("Mover pajaro %d\n\n\n",i);
+	}
+	return componentes;
+}
+
+
+
+
 Dron* leer_drones(char* nombre_Archivo)
 {
 	FILE* puntero_archivo;
@@ -98,7 +534,7 @@ Dron* leer_drones(char* nombre_Archivo)
 	
 	int i;
 	char * token;
-	for (i = 0; i < 3; ++i)
+	for (i = 0; i < 5; ++i)
 	{
 		memset(str, '\0', LARGO_ENTRADA);
 		//Se lee el tipo de dron
@@ -125,19 +561,17 @@ Dron* leer_drones(char* nombre_Archivo)
 		token = strtok(NULL, " ");
 		token = strtok(NULL, " ");
 		arreglo_Drones[i].rapidez = atoi(token);
-		arreglo_Drones[i].numero_Drones=cantidad_Drones;
 	}
 	fclose(puntero_archivo);
 	
 return arreglo_Drones;
 }
 
+void imprimir_Drones(Dron* arreglo_Drones){
 
-void imprimir_Drones(Dron* arreglo_Drones)
-{
-	
-	printf("Cantidad de drones es: %d\n\n", arreglo_Drones[0].numero_Drones);
-	for (int i = 0; i < arreglo_Drones[0].numero_Drones; ++i)
+	printf("Cantidad de drones es: %d\n\n", 5);
+	//arreglo_Drones[0].numero_Drones
+	for (int i = 0; i <5 ; ++i)
 	{
 		printf("Tipo dron: %s\n", arreglo_Drones[i].tipo);
 		printf("La bateria del dron es: %d\n", arreglo_Drones[i].bateria);
@@ -148,7 +582,6 @@ void imprimir_Drones(Dron* arreglo_Drones)
 	return;
 }
 
-
 Dron eleccion_Dron(Conponentes_Mapa total_Mapas,Dron* arreglo_Drones){
 	int i;
 	int salir=0;
@@ -157,7 +590,7 @@ Dron eleccion_Dron(Conponentes_Mapa total_Mapas,Dron* arreglo_Drones){
 	while(salir==0){
 	
 		printf("\n\nSeleccione dron que desea ocupar: \n");
-			for (i=0;i< arreglo_Drones[0].numero_Drones; i++){
+			for (i=0;i< 5; i++){
 				printf("%d.- Tipo dron: %s\n",i+1, arreglo_Drones[i].tipo);
 		}
 		fflush(stdin);		
@@ -178,10 +611,19 @@ Dron eleccion_Dron(Conponentes_Mapa total_Mapas,Dron* arreglo_Drones){
 			dron_util=arreglo_Drones[2];
 			salir++;
 		}
+		else if(0==strcmp(eleccion,"4")){
+			
+			dron_util=arreglo_Drones[3];
+			salir++;
+		}
+		else if(0==strcmp(eleccion,"5")){
+			
+			dron_util=arreglo_Drones[4];
+			salir++;
+		}
 	}
 return dron_util;
 }
-
 
 Sensor* leer_Sensores(Sensor* sensores,char* nombre_Archivo){
 
@@ -235,7 +677,6 @@ Sensor* leer_Sensores(Sensor* sensores,char* nombre_Archivo){
 	fclose(puntero_archivo);	
 	return sensores;
 }
-
 
 Punto* leer_Puntos(Punto* puntos,char* nombre_Archivo){
 
@@ -293,7 +734,7 @@ Punto* leer_Puntos(Punto* puntos,char* nombre_Archivo){
 	return puntos;
 }
 
-void imprimir_mapa(Conponentes_Mapa* componente){
+void imprimir_mapa(Conponentes_Mapa componente){
 	int i,j,a,b, con=0;
 
 	
@@ -301,10 +742,10 @@ void imprimir_mapa(Conponentes_Mapa* componente){
 
     		for(b=0;b<37;b++){
 
- 				for(i=0;i<componente->cantidad_pajaros;i++){
+ 				for(i=0;i<componente.cantidad_pajaros;i++){
 
- 					if(componente->pajaros[con].pajaro_x==b && componente->pajaros[con].pajaro_y==a){
- 						componente->mapa[a][b]='P';
+ 					if(componente.pajaros[con].pajaro_x==b && componente.pajaros[con].pajaro_y==a){
+ 						componente.mapa[a][b]='P';
  						con++;
  					}
  				}
@@ -313,24 +754,18 @@ void imprimir_mapa(Conponentes_Mapa* componente){
 	 
 
 	for (int i = 0; i < FILAS_MATRIZ; ++i){
-
 		for (int j = 0; j < COLUMNAS_MATRIZ; ++j){
 			
-			if(componente->dron_x==j && componente->dron_y==i){   			
-    				printf("D");
-    			}
-
+			if(componente.dron_x==j && componente.dron_y==i){   			
+    			printf("D");
+    		}
 			else{
-
-				printf("%c", componente->mapa[i][j]);
-			}
-			
+				printf("%c", componente.mapa[i][j]);
+			}			
 		}
 		printf("\n");
 	}
-
-	printf("\n\n");
-	
+	printf("\n\n");	
 }
 
 void leer_Mapa(char* nombre_mapa, Conponentes_Mapa* componente){
@@ -455,13 +890,13 @@ Conponentes_Mapa ubicacion_objetos(Conponentes_Mapa componentes){
    				componentes.pajaros[con].pajaro_y=a;   				
    				//Borrar pajaros, para ser escritos desde impresion mapa 
    				componentes.mapa[a][b]=' ';
+				//printf("Pajaro %d  X: %d  Y: %d\n",con,b,a);
    				con++;
    			}
    		}
    	}   	
 return componentes;
 }
-
 
 void imprimir_estadisticas(Conponentes_Mapa componente,int velocidad){
 
@@ -474,7 +909,6 @@ void imprimir_estadisticas(Conponentes_Mapa componente,int velocidad){
 	printf("Porcentaje zonas regadas: %d\n",porcentaje);
 	printf("Rapidez actual: %d", velocidad);
 }
-
 
 //Comprobacion de alguna accion a realizar(regar, sensor, recargar)
 Conponentes_Mapa comprobar_accion(Conponentes_Mapa componente, int *fin){
@@ -585,7 +1019,7 @@ Conponentes_Mapa comprobar_accion(Conponentes_Mapa componente, int *fin){
 	}
 
 	else if(componente.mapa[componente.dron_y][componente.dron_x]=='S'){
-		printf("Cantidad sensores actuales %d  Max %d\n",componente.cantidad_sensores,componente.cantidad_sensores_max);
+		
 		salir=0;
 		if(componente.cantidad_sensores==0){
 			salir++;			
@@ -621,7 +1055,6 @@ Conponentes_Mapa comprobar_accion(Conponentes_Mapa componente, int *fin){
 return componente;
 }
 
-
 void mover_dron(Conponentes_Mapa componente){
 	
 	printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -632,11 +1065,11 @@ void mover_dron(Conponentes_Mapa componente){
 	printf("EJEMPLO  d,w\n");
 	printf("Letra K forzar salida \n");
 	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
-	int fin=0,i;
+	int fin=0,i,verificador;
 	char movimiento[10];
 	int velocidad=1;
 	char delimitador[] = ",";
-    	char *token;
+    char *token;
 	
 	
 	printf("Rapidez maxima dron seleccionado: %d\n\n",componente.dron.rapidez);
@@ -651,6 +1084,7 @@ void mover_dron(Conponentes_Mapa componente){
 		scanf("%s",&movimiento);
 		token = strtok(movimiento, delimitador);
 		
+		verificador=0;
 		for(i=1;i<=velocidad;i++){
 		
 			if(0==strcmp(token,"v")){
@@ -664,86 +1098,92 @@ void mover_dron(Conponentes_Mapa componente){
 				}
 				printf("Nueva velocidad: %d\n",velocidad);
 			}
+
 			else if(0==strcmp(token,"w")){
-				
-				if (componente.mapa[componente.dron_y-1][componente.dron_x]=='#'){
-					printf("Movimiento no valido, obstaculo \n");
-				}
-				else if(componente.dron_x==0){
-					printf("Movimiento no valido, fuera de limites\n");
-				}
-				else{
-					componente.dron_y--;
-					componente.dron.bateria=componente.dron.bateria-1;
-					componente=comprobar_accion(componente,&fin);
-						
-				}
-			}
-			else if(0==strcmp(token,"d")){
-				if (componente.mapa[componente.dron_y][componente.dron_x+1]=='#'){
-					printf("Movimiento no valido, obstaculo \n");
-				}
-				else if(componente.dron_x==34){
-					printf("Movimiento no valido, fuera de limites\n");
-				}
-				else{
-					componente.dron_x++;
-					componente.dron.bateria=componente.dron.bateria-1;
-					componente=comprobar_accion(componente,&fin);	
-				}
-			}
-			else if(0==strcmp(token,"s")){
-				if (componente.mapa[componente.dron_y+1][componente.dron_x]=='#'){
-					printf("Movimiento no valido, obstaculo \n");
-				}
-				else if(componente.dron_x==19){
-					printf("Movimiento no valido, fuera de limites\n");
-				}
-				else{
-					componente.dron_y++;
-					componente.dron.bateria=componente.dron.bateria-1;
-					componente=comprobar_accion(componente,&fin);
-						
-				}
-			}
-			
-			
-			else if(0==strcmp(token,"a")){
-				if (componente.mapa[componente.dron_y][componente.dron_x-1]=='#'){
-					printf("Movimiento no valido, obstaculo \n");
-				}
-				else if(componente.dron_x==0){
-					printf("Movimiento no valido, fuera de limites\n");
-				}
-				else{
-					componente.dron_x--;
-					componente.dron.bateria=componente.dron.bateria-1;
-					componente=comprobar_accion(componente,&fin);
 					
-						
+					if (componente.mapa[componente.dron_y-1][componente.dron_x]=='#'){
+						printf("Movimiento no valido, obstaculo \n");
+					}
+					else if(componente.dron_x==0){
+						printf("Movimiento no valido, fuera de limites\n");
+					}
+					else{
+						componente.dron_y--;
+						componente.dron.bateria=componente.dron.bateria-1;
+						verificador++;
+						componente=comprobar_accion(componente,&fin);
+							
+					}
 				}
-			}
-			
-			
-			else if(0==strcmp(token,"k")){
 				
-				fin++;
-			}
-			
-			
+			else if(0==strcmp(token,"d")){
+					if (componente.mapa[componente.dron_y][componente.dron_x+1]=='#'){
+						printf("Movimiento no valido, obstaculo \n");
+					}
+					else if(componente.dron_x==34){
+						printf("Movimiento no valido, fuera de limites\n");
+					}
+					else{
+						componente.dron_x++;
+						componente.dron.bateria=componente.dron.bateria-1;
+						verificador++;
+						componente=comprobar_accion(componente,&fin);	
+					}
+				}
+				
+			else if(0==strcmp(token,"s")){
+					if (componente.mapa[componente.dron_y+1][componente.dron_x]=='#'){
+						printf("Movimiento no valido, obstaculo \n");
+					}
+					else if(componente.dron_x==19){
+						printf("Movimiento no valido, fuera de limites\n");
+					}
+					else{
+						componente.dron_y++;
+						componente.dron.bateria=componente.dron.bateria-1;
+						verificador++;
+						componente=comprobar_accion(componente,&fin);
+							
+					}
+				}
+								
+			else if(0==strcmp(token,"a")){
+					if (componente.mapa[componente.dron_y][componente.dron_x-1]=='#'){
+						printf("Movimiento no valido, obstaculo \n");
+					}
+					else if(componente.dron_x==0){
+						printf("Movimiento no valido, fuera de limites\n");
+					}
+					else{
+						componente.dron_x--;
+						componente.dron.bateria=componente.dron.bateria-1;
+						verificador++;
+						componente=comprobar_accion(componente,&fin);
+						
+							
+					}
+				}
+								
+			else if(0==strcmp(token,"k")){
+					
+					fin++;
+				}
+								
 			token = strtok(NULL, delimitador);
 			if(token == NULL){
-				//En dado caso que se ingresen menos movimientos de los seleccionados
-				//se sale de los movimientos, evitando caida del programa
-            			i=10;
-			}
+					//En dado caso que se ingresen menos movimientos de los seleccionados
+					//se sale de los movimientos, evitando caida del programa
+							i=10;
+				}
 		}
 		
-		imprimir_mapa(&componente);
+		if (verificador!=0){
+			mover_pajaros(componente);
+		}
+		imprimir_mapa(componente);
 		
 	}
 }
-
 
 void menu(Conponentes_Mapa* totalidad_Mapas,Dron* arreglo_Drones){
 
@@ -785,7 +1225,7 @@ void menu(Conponentes_Mapa* totalidad_Mapas,Dron* arreglo_Drones){
 			for	(i=0;i<CANTIDAD_MAPAS;i++){
 
 				printf("\n~~~~~~~~~~~ %s ~~~~~~~~~~~ \n",nombres[i]);
-				imprimir_mapa(&totalidad_Mapas[i]);
+				imprimir_mapa(totalidad_Mapas[i]);
 				printf("\n\n");
 			}
 		}
@@ -797,7 +1237,6 @@ void menu(Conponentes_Mapa* totalidad_Mapas,Dron* arreglo_Drones){
 
 			dron_Util=eleccion_Dron(mapa_Util,arreglo_Drones);
 			
-			dron_Util.numero_Drones=1;
 			mapa_Util.dron=dron_Util;
 
 			mover_dron(mapa_Util);
@@ -823,9 +1262,6 @@ void menu(Conponentes_Mapa* totalidad_Mapas,Dron* arreglo_Drones){
 		}
 	}
 }
-
-
-
 
 int main(){
 
@@ -863,11 +1299,20 @@ int main(){
 
 	
 
+	//Conponentes_Mapa m=totalidad_Mapas[0];
+
+	//m=mover_pajaros(m);
+	
+	
+	
+	//imprimir_mapa(m);
 
 	
-
+	//printf("Prueba\n");
 	// //Llamado a menu de aplicacion.
 	menu(totalidad_Mapas,arreglo_Drones);
+
+	
 
 	free(arreglo_Drones);
 
